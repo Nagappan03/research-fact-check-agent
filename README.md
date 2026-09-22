@@ -16,11 +16,11 @@ Requires Node.js 20 or newer.
    ```bash
    npm install
    ```
-2. Add your API key:
-   ```bash
-   cp .env.example .env
+2. Add your API key: create a `.env` file in the project root (gitignored) and set `ANTHROPIC_API_KEY`:
    ```
-   Then edit `.env` and set `ANTHROPIC_API_KEY`. Keys come from the [Anthropic Console](https://console.anthropic.com/settings/keys).
+   ANTHROPIC_API_KEY=your-api-key-here
+   ```
+   Keys come from the [Anthropic Console](https://console.anthropic.com/settings/keys).
 3. Make sure web search is enabled for your organization in the Console settings. Without that, the request fails with an error about the tool.
 4. Run it:
    ```bash
@@ -28,6 +28,12 @@ Requires Node.js 20 or newer.
    ```
 
 Each run prints the searches Claude decides to make as it goes, so you can watch the agent work.
+
+Optional: to email a brief to yourself locally (the same thing the GitHub Actions workflow does, see [Cloud deployment](#cloud-deployment)), also set `GMAIL_USER` and `GMAIL_APP_PASSWORD` in `.env`, then run:
+```bash
+node send-brief-email.js "Your topic here"
+```
+It reads `output/<slug>.md` for that topic, so run `research.js` for it first.
 
 ## How the agent loop works
 
@@ -63,10 +69,13 @@ The brief also lists the searches that were run, so you can see what the researc
 ## Project layout
 
 ```
-research.js     the whole agent: loop, JSON parsing, markdown rendering
-.env.example    template for ANTHROPIC_API_KEY
-output/         generated briefs (gitignored)
-cost-log.csv    per-run usage and cost (gitignored, created on first run)
+research.js           the whole agent: loop, JSON parsing, markdown rendering
+send-brief-email.js   emails a generated brief to yourself (used by the workflow)
+lib/slug.js           shared slugify(), used by both scripts above
+.env                   your local secrets: ANTHROPIC_API_KEY, GMAIL_USER, GMAIL_APP_PASSWORD (gitignored)
+output/                generated briefs (gitignored)
+cost-log.csv           per-run usage and cost (gitignored, created on first run)
+.github/workflows/research.yml   manual GitHub Actions workflow (see Cloud deployment)
 ```
 
 ## Configuration
@@ -74,7 +83,7 @@ cost-log.csv    per-run usage and cost (gitignored, created on first run)
 Everything lives at the top of `research.js`:
 
 - `MODEL` is `claude-sonnet-5`.
-- `WEB_SEARCH_TOOL` uses `web_search_20250305`, with `max_uses: 6` to cap searches (and cost) per run. A newer variant, `web_search_20260209`, adds dynamic filtering of results. It is a drop-in swap for the `type` string if you want to try it.
+- `WEB_SEARCH_TOOL` uses `web_search_20260209`, with `max_uses: 3` to cap searches (and cost) per run - the system prompt also asks Claude to spend them deliberately.
 - `MAX_TURNS` caps the loop so it cannot run forever.
 - `INPUT_PRICE_PER_MTOK`, `OUTPUT_PRICE_PER_MTOK` and `WEB_SEARCH_PRICE_PER_1000` drive the cost tracking below. Update them if rates change.
 
@@ -87,6 +96,29 @@ The cost is `input tokens x $2/M + output tokens x $10/M + searches x $10/1000`,
 - The run is logged as soon as the agent loop ends, before the JSON is parsed. If parsing fails, the API calls were still billed and still appear in the log.
 - If the loop itself fails partway (say, a rate limit on turn 3), the turns that completed are logged too.
 - This is an estimate from the usage numbers the API returns. Your Anthropic Console is the source of truth for billing.
+
+## Cloud deployment
+
+A GitHub Actions workflow ([.github/workflows/research.yml](.github/workflows/research.yml)) lets you trigger a run remotely and get the brief emailed to you, without anyone needing a terminal.
+
+### Set up the three repo secrets
+
+In the repo on GitHub: **Settings → Secrets and variables → Actions → New repository secret**. Add all three:
+
+| Secret | Value |
+|---|---|
+| `ANTHROPIC_API_KEY` | Your Anthropic API key, same as in `.env` |
+| `GMAIL_USER` | The Gmail address to send from and to (you email yourself) |
+| `GMAIL_APP_PASSWORD` | A Gmail [App Password](https://myaccount.google.com/apppasswords) for that address - not your regular Gmail password. Requires 2-Step Verification to be enabled on the account. |
+
+### Run it
+
+1. Go to the repo's **Actions** tab.
+2. Select **Research Agent** in the left sidebar.
+3. Click **Run workflow**.
+4. Enter the topic in the **topic** field and click **Run workflow** again.
+
+The run checks out the repo, installs dependencies, runs `research.js` (which writes `output/<slug>.md`), then runs `send-brief-email.js` to email you that file. Subject line is `Research Brief: <topic>`, exact match, since other tooling searches Gmail for it. If either step fails - a bad API key, no matching output file, an SMTP error - the workflow run shows red instead of silently succeeding.
 
 ## Planned for v2
 

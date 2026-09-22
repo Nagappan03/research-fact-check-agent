@@ -16,6 +16,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { slugify } from "./lib/slug.js";
 
 dotenv.config({ quiet: true }); // loads ANTHROPIC_API_KEY from .env into process.env
 
@@ -249,18 +250,6 @@ function parseBrief(text) {
   return brief;
 }
 
-/** "Vector Databases & Embeddings" -> "vector-databases-embeddings" */
-function slugify(text) {
-  return (
-    text
-      .toLowerCase()
-      .normalize("NFKD")
-      .replace(/[̀-ͯ]/g, "") // strip accents
-      .replace(/[^a-z0-9]+/g, "-") // anything else becomes a hyphen
-      .replace(/^-+|-+$/g, "") || "topic"
-  );
-}
-
 /**
  * Renders the brief as markdown. The fact-check touch: each source is marked
  * according to whether its URL really appeared in a search result. A URL that
@@ -374,7 +363,7 @@ async function main() {
     process.exit(1);
   }
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.error("ANTHROPIC_API_KEY is not set. Copy .env.example to .env and add your key.");
+    console.error("ANTHROPIC_API_KEY is not set. Add it to .env in the project root.");
     process.exit(1);
   }
 

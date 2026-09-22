@@ -1,0 +1,43 @@
+name: Research Agent
+
+# Manual trigger from the Actions tab: run the research agent for a topic,
+# then email the resulting brief to you.
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "Topic to research (e.g. Vector Databases & Embeddings)"
+        required: true
+        type: string
+
+jobs:
+  research-and-email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Run research agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node research.js "${{ inputs.topic }}"
+
+      - name: Email the brief
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: node send-brief-email.js "${{ inputs.topic }}"

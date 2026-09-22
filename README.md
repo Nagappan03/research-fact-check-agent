@@ -89,13 +89,15 @@ Everything lives at the top of `research.js`:
 
 ## Cost tracking
 
-After every run the script prints the input tokens, output tokens, number of web searches and the total cost in USD. It also appends the run to `cost-log.csv` (gitignored, created on first run) and prints your cumulative spend across all runs, which you can compare against your remaining API credits.
+After every run the script prints the input tokens, output tokens, number of web searches and the total cost in USD. It also appends the run to `cost-log.csv` (created on first run) and prints your cumulative spend across all runs, which you can compare against your remaining API credits. The same numbers are also written into a "Cost" section at the bottom of the generated `.md` brief, so they travel with it - including into the email the GitHub Actions workflow sends (see [Cloud deployment](#cloud-deployment)).
 
 The cost is `input tokens x $2/M + output tokens x $10/M + searches x $10/1000`, summed over every turn of the loop. The constants are at the top of `research.js`.
 
 - The run is logged as soon as the agent loop ends, before the JSON is parsed. If parsing fails, the API calls were still billed and still appear in the log.
 - If the loop itself fails partway (say, a rate limit on turn 3), the turns that completed are logged too.
 - This is an estimate from the usage numbers the API returns. Your Anthropic Console is the source of truth for billing.
+
+`cost-log.csv` is gitignored for local runs, so your own runs stay local. The GitHub Actions workflow is the exception: its runner is thrown away after every run, so it force-adds and commits `cost-log.csv` back to the repo (as `github-actions[bot]`) after each run, which is what lets cumulative spend actually accumulate across workflow runs instead of resetting to zero each time. That also means the file is visible directly on GitHub once the workflow has run at least once.
 
 ## Cloud deployment
 

@@ -10,6 +10,12 @@ on:
         required: true
         type: string
 
+# Needed so the "Commit cost log" step below can push cost-log.csv back to
+# the repo. Runners are ephemeral - without committing it, cumulative cost
+# would reset to zero on every run.
+permissions:
+  contents: write
+
 jobs:
   research-and-email:
     runs-on: ubuntu-latest
@@ -35,6 +41,22 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node research.js "${{ inputs.topic }}"
+
+      - name: Commit cost log
+        # cost-log.csv is gitignored for local runs, but the runner's
+        # filesystem is thrown away after the job, so this run's cost would
+        # otherwise never accumulate into the next one. Commit it back to
+        # the repo so the next checkout starts from the real running total.
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f cost-log.csv
+          if git diff --staged --quiet; then
+            echo "cost-log.csv unchanged, nothing to commit"
+          else
+            git commit -m "Update cost-log.csv [skip ci]"
+            git push
+          fi
 
       - name: Email the brief
         env:

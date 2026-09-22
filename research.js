@@ -255,7 +255,7 @@ function parseBrief(text) {
  * according to whether its URL really appeared in a search result. A URL that
  * never showed up may have been recalled from memory, so verify it by hand.
  */
-function renderMarkdown(brief, { searchQueries, retrievedUrls }) {
+function renderMarkdown(brief, { searchQueries, retrievedUrls }, costReport) {
   const bullets = (items) => items.map((i) => `- ${i}`).join("\n") || "_None found._";
   const sources = brief.sources
     .map((s) => {
@@ -285,7 +285,23 @@ ${sources || "_None found._"}
 Searches Claude ran:
 
 ${bullets(searchQueries.map((q) => `\`${q}\``))}
+
+## Cost
+
+${renderCostSection(costReport)}
 `;
+}
+
+/**
+ * Renders the same numbers printCostReport() prints to the console, as a
+ * markdown block, so the emailed brief carries cost alongside the content.
+ */
+function renderCostSection({ usage, cost, cumulativeCost }) {
+  return `- Input tokens: ${usage.totalInputTokens.toLocaleString()}
+- Output tokens: ${usage.totalOutputTokens.toLocaleString()}
+- Web searches: ${usage.totalSearches}
+- Cost of this run: ${formatUsd(cost)}
+- Cumulative spend across all runs: ${formatUsd(cumulativeCost)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -340,16 +356,20 @@ async function recordCost(topic, usage) {
   return { usage, cost, cumulativeCost };
 }
 
+/** e.g. 0.0847 -> "$0.0847" */
+function formatUsd(n) {
+  return `$${n.toFixed(4)}`;
+}
+
 function printCostReport({ usage, cost, cumulativeCost }) {
-  const usd = (n) => `$${n.toFixed(4)}`;
   console.log(`
 Cost of this run
   Input tokens:  ${usage.totalInputTokens.toLocaleString()}
   Output tokens: ${usage.totalOutputTokens.toLocaleString()}
   Web searches:  ${usage.totalSearches}
-  Total cost:    ${usd(cost)}
+  Total cost:    ${formatUsd(cost)}
 
-Cumulative spend across all runs: ${usd(cumulativeCost)}  (${COST_LOG_PATH})`);
+Cumulative spend across all runs: ${formatUsd(cumulativeCost)}  (${COST_LOG_PATH})`);
 }
 
 // ---------------------------------------------------------------------------
@@ -390,7 +410,7 @@ async function main() {
     const slug = slugify(topic);
     const mdPath = path.join(OUTPUT_DIR, `${slug}.md`);
     const jsonPath = path.join(OUTPUT_DIR, `${slug}.json`);
-    await fs.writeFile(mdPath, renderMarkdown(brief, result));
+    await fs.writeFile(mdPath, renderMarkdown(brief, result, costReport));
     await fs.writeFile(jsonPath, JSON.stringify(brief, null, 2) + "\n");
 
     console.log(`\nDone. Wrote:\n  ${mdPath}\n  ${jsonPath}`);

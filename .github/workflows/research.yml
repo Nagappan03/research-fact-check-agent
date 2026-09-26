@@ -1,7 +1,15 @@
 name: Research Agent
 
-# Manual trigger from the Actions tab: run the research agent for a topic,
-# then email the resulting brief to you.
+# Two ways in:
+#   1. workflow_dispatch - manual trigger from the Actions tab, topic typed in.
+#   2. push to .trigger/topic.txt - the automated path. A scheduled agent
+#      writes the next pipeline topic into that file and pushes it; GitHub's
+#      own push event fires this workflow, no Actions REST API call needed.
+#      (workflow_dispatch can't be called by an automated agent session here -
+#      the credential those sessions get lacks the actions:write permission,
+#      confirmed by testing directly - but a plain git push isn't gated by
+#      that same permission, so this is the trigger that can actually run
+#      unattended.)
 on:
   workflow_dispatch:
     inputs:
@@ -9,6 +17,10 @@ on:
         description: "Topic to research (e.g. Vector Databases & Embeddings)"
         required: true
         type: string
+  push:
+    branches: [main]
+    paths:
+      - ".trigger/topic.txt"
 
 # Needed so the "Commit cost log" step below can push cost-log.csv back to
 # the repo. Runners are ephemeral - without committing it, cumulative cost
@@ -37,10 +49,26 @@ jobs:
             npm install
           fi
 
+      - name: Determine topic
+        id: topic
+        # workflow_dispatch carries the topic as a typed input; a push carries
+        # it as the file content that was just committed.
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TOPIC="${{ inputs.topic }}"
+          else
+            TOPIC="$(cat .trigger/topic.txt)"
+          fi
+          if [ -z "$TOPIC" ]; then
+            echo "No topic found (empty input or empty .trigger/topic.txt)." >&2
+            exit 1
+          fi
+          echo "topic=$TOPIC" >> "$GITHUB_OUTPUT"
+
       - name: Run research agent
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: node research.js "${{ inputs.topic }}"
+        run: node research.js "${{ steps.topic.outputs.topic }}"
 
       - name: Commit cost log
         # cost-log.csv is gitignored for local runs, but the runner's
@@ -62,4 +90,4 @@ jobs:
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-        run: node send-brief-email.js "${{ inputs.topic }}"
+        run: node send-brief-email.js "${{ steps.topic.outputs.topic }}"

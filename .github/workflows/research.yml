@@ -113,4 +113,17 @@ jobs:
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          # Only set on a schedule run (pick-next-topic.js reports it); blank
+          # on workflow_dispatch/push, where send-brief-email.js just skips
+          # the low-queue warning since there's nothing to warn about there.
+          QUEUE_REMAINING: ${{ steps.topic.outputs.remaining }}
         run: node send-brief-email.js "${{ steps.topic.outputs.topic }}"
+
+      - name: Notify empty topic queue
+        # Only reachable via the schedule path - workflow_dispatch/push with
+        # an empty topic fail the "Determine topic" step outright instead.
+        if: steps.topic.outputs.has_topic == 'false'
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: node notify-empty-queue.js

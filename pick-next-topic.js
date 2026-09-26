@@ -59,11 +59,24 @@ async function main() {
     // No cost-log.csv yet (e.g. very first run ever) - nothing researched so far.
   }
 
-  const next = topics.find((topic) => !researchedSlugs.has(slugify(topic)));
-  if (!next) {
+  const unresearched = topics.filter((topic) => !researchedSlugs.has(slugify(topic)));
+  if (unresearched.length === 0) {
     console.error("Every topic in topics.json has already been researched.");
     process.exit(1);
   }
+
+  const [next, ...rest] = unresearched;
+
+  // In a GitHub Actions run, also report how many topics are LEFT after this
+  // one is picked, so the caller can warn while the queue is still running
+  // low rather than only once it's fully empty. Writing straight to
+  // $GITHUB_OUTPUT (rather than stdout) keeps this script's stdout contract
+  // simple - it always just prints the chosen topic, nothing else - for
+  // anyone running it by hand.
+  if (process.env.GITHUB_OUTPUT) {
+    await fs.appendFile(process.env.GITHUB_OUTPUT, `remaining=${rest.length}\n`);
+  }
+
   process.stdout.write(next);
 }
 

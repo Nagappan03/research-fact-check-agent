@@ -60,13 +60,22 @@ async function main() {
 
   const subject = `Research Brief: ${topic}`; // exact format - something else searches Gmail for this
 
+  // On a scheduled run, pick-next-topic.js reports how many topics are left
+  // in topics.json after this one via $GITHUB_OUTPUT -> steps.topic.outputs
+  // -> this env var. Not set on a workflow_dispatch/push run, and that's
+  // fine - there's nothing meaningful to warn about there.
+  const remaining = Number(process.env.QUEUE_REMAINING);
+  const queueWarning = Number.isFinite(remaining) && remaining <= 1
+    ? `\n\n---\nHeads up: only ${remaining} topic${remaining === 1 ? "" : "s"} left in topics.json after this one. Add the next batch soon, or a future scheduled run will have nothing to research.`
+    : "";
+
   try {
     console.log(`Sending "${subject}" to ${GMAIL_USER}...`);
     const info = await transporter.sendMail({
       from: GMAIL_USER,
       to: GMAIL_USER, // emailing yourself
       subject,
-      text: briefMarkdown, // plain text, markdown source as-is
+      text: briefMarkdown + queueWarning, // plain text, markdown source as-is
     });
     console.log(`Sent. messageId: ${info.messageId}`);
   } catch (err) {

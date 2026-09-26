@@ -1,2 +1,3 @@
 date,topic,inputTokens,outputTokens,searches,cost
 2026-09-25,"What is MCP (Model Context Protocol) and why it matters for agents",84223,4249,3,0.240936
+2026-09-26,"Temperature & sampling: controlling how creative a response is",95568,4860,3,0.269736

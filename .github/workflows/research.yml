@@ -1,16 +1,26 @@
 name: Research Agent
 
-# Two ways in:
-#   1. workflow_dispatch - manual trigger from the Actions tab, topic typed in.
-#   2. push to .trigger/topic.txt - the automated path. A scheduled agent
-#      writes the next pipeline topic into that file and pushes it; GitHub's
-#      own push event fires this workflow, no Actions REST API call needed.
-#      (workflow_dispatch can't be called by an automated agent session here -
+# Three ways in:
+#   1. schedule - the real long-term automation. Runs unattended, weekdays at
+#      9 PM IST (15:30 UTC), with no human or agent involved at trigger time.
+#      A schedule event carries no input, so the topic comes from the repo
+#      itself: pick-next-topic.js reads topics.json (this agent's pipeline)
+#      and cost-log.csv (what's already been researched) and picks the next
+#      one. See that script's header comment for how to keep topics.json in
+#      sync with the blog's own pipeline.
+#   2. workflow_dispatch - manual trigger from the Actions tab, topic typed in
+#      (for researching something out of pipeline order, or re-running one).
+#   3. push to .trigger/topic.txt - an older automated path (a Claude session
+#      writing the topic and pushing it) that's no longer relied on day to
+#      day now that `schedule` covers it, but is left in place since it
+#      still works and is a reasonable manual/scripted fallback.
+#      (workflow_dispatch can't be called by an unattended Claude session -
 #      the credential those sessions get lacks the actions:write permission,
-#      confirmed by testing directly - but a plain git push isn't gated by
-#      that same permission, so this is the trigger that can actually run
-#      unattended.)
+#      confirmed by testing directly - which is the whole reason paths 1 and
+#      3 exist instead of just calling workflow_dispatch on a timer.)
 on:
+  schedule:
+    - cron: "30 15 * * 1-5"
   workflow_dispatch:
     inputs:
       topic:
@@ -52,10 +62,19 @@ jobs:
       - name: Determine topic
         id: topic
         # workflow_dispatch carries the topic as a typed input; a push carries
-        # it as the file content that was just committed.
+        # it as the file content that was just committed; schedule carries
+        # nothing, so pick-next-topic.js works it out from the repo.
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TOPIC="${{ inputs.topic }}"
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            if TOPIC="$(node pick-next-topic.js)"; then
+              : # picked the next un-researched topic
+            else
+              echo "Nothing left in topics.json to research - skipping this scheduled run."
+              echo "has_topic=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
           else
             TOPIC="$(cat .trigger/topic.txt)"
           fi
@@ -63,14 +82,17 @@ jobs:
             echo "No topic found (empty input or empty .trigger/topic.txt)." >&2
             exit 1
           fi
+          echo "has_topic=true" >> "$GITHUB_OUTPUT"
           echo "topic=$TOPIC" >> "$GITHUB_OUTPUT"
 
       - name: Run research agent
+        if: steps.topic.outputs.has_topic == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node research.js "${{ steps.topic.outputs.topic }}"
 
       - name: Commit cost log
+        if: steps.topic.outputs.has_topic == 'true'
         # cost-log.csv is gitignored for local runs, but the runner's
         # filesystem is thrown away after the job, so this run's cost would
         # otherwise never accumulate into the next one. Commit it back to
@@ -87,6 +109,7 @@ jobs:
           fi
 
       - name: Email the brief
+        if: steps.topic.outputs.has_topic == 'true'
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}

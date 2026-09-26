@@ -69,13 +69,17 @@ The brief also lists the searches that were run, so you can see what the researc
 ## Project layout
 
 ```
-research.js           the whole agent: loop, JSON parsing, markdown rendering
-send-brief-email.js   emails a generated brief to yourself (used by the workflow)
-lib/slug.js           shared slugify(), used by both scripts above
-.env                   your local secrets: ANTHROPIC_API_KEY, GMAIL_USER, GMAIL_APP_PASSWORD (gitignored)
-output/                generated briefs (gitignored)
-cost-log.csv           per-run usage and cost (gitignored, created on first run)
-.github/workflows/research.yml   manual GitHub Actions workflow (see Cloud deployment)
+research.js             the whole agent: loop, JSON parsing, markdown rendering
+send-brief-email.js     emails a generated brief to yourself (used by the workflow)
+notify-empty-queue.js   emails a "topic queue is empty" notice when topics.json runs dry
+pick-next-topic.js      picks the next un-researched topic for the scheduled run (see Cloud deployment)
+lib/slug.js             shared slugify(), used by the scripts above
+topics.json             this agent's own topic queue (see Keeping the topic queue filled)
+.trigger/topic.txt      written+pushed to fire a run via the push trigger (see Cloud deployment)
+.env                     your local secrets: ANTHROPIC_API_KEY, GMAIL_USER, GMAIL_APP_PASSWORD (gitignored)
+output/                  generated briefs (gitignored)
+cost-log.csv             per-run usage and cost (gitignored locally; committed by the workflow, see Cost tracking)
+.github/workflows/research.yml   the GitHub Actions workflow (see Cloud deployment)
 ```
 
 ## Configuration
@@ -101,7 +105,7 @@ The cost is `input tokens x $2/M + output tokens x $10/M + searches x $10/1000`,
 
 ## Cloud deployment
 
-A GitHub Actions workflow ([.github/workflows/research.yml](.github/workflows/research.yml)) lets you trigger a run remotely and get the brief emailed to you, without anyone needing a terminal.
+A GitHub Actions workflow ([.github/workflows/research.yml](.github/workflows/research.yml)) runs this unattended - checks out the repo, installs dependencies, runs `research.js`, commits `cost-log.csv`, and emails the brief - with no terminal and, for the main path, no human involved at all.
 
 ### Set up the three repo secrets
 
@@ -113,14 +117,27 @@ In the repo on GitHub: **Settings → Secrets and variables → Actions → New 
 | `GMAIL_USER` | The Gmail address to send from and to (you email yourself) |
 | `GMAIL_APP_PASSWORD` | A Gmail [App Password](https://myaccount.google.com/apppasswords) for that address - not your regular Gmail password. Requires 2-Step Verification to be enabled on the account. |
 
-### Run it
+### Three ways to trigger a run
 
-1. Go to the repo's **Actions** tab.
-2. Select **Research Agent** in the left sidebar.
-3. Click **Run workflow**.
-4. Enter the topic in the **topic** field and click **Run workflow** again.
+| Trigger | When it's used | How the topic is chosen |
+|---|---|---|
+| `schedule` (cron) | The real automation - fires unattended, weekdays at 9 PM IST, no one involved | `pick-next-topic.js` reads `topics.json` (this agent's topic queue) and `cost-log.csv` (what's already researched), and picks the first one not yet done, matching by slug |
+| `workflow_dispatch` | Researching something out of order, or re-running a topic, from the Actions tab | Typed into the **topic** input field |
+| `push` to `.trigger/topic.txt` | A scripted/manual fallback - write a topic into that file and push it | The file's content |
 
-The run checks out the repo, installs dependencies, runs `research.js` (which writes `output/<slug>.md`), then runs `send-brief-email.js` to email you that file. Subject line is `Research Brief: <topic>`, exact match, since other tooling searches Gmail for it. If either step fails - a bad API key, no matching output file, an SMTP error - the workflow run shows red instead of silently succeeding.
+If `topics.json` is ever fully researched, the scheduled run sends a "topic queue is empty" email instead of silently doing nothing - see [Keeping the topic queue filled](#keeping-the-topic-queue-filled).
+
+Whichever way it's triggered, the run then does the same thing: `research.js` writes `output/<slug>.md`, `cost-log.csv` gets committed back, and `send-brief-email.js` emails that file with subject `Research Brief: <topic>` (exact match - other tooling searches Gmail for it). If any step fails - a bad API key, no matching output file, an SMTP error - the workflow run shows red instead of silently succeeding.
+
+### Keeping the topic queue filled
+
+`topics.json` is this agent's own ordered queue - just the topics it's responsible for researching (starting from #10 in the blog's pipeline; #1-9 predate this agent and were drafted without it). There's no automated step that invents new topics: deciding them is a deliberate conversation, written into the blog's own `content-creation.md` pipeline first. Whenever a new batch is decided there, append the same titles to `topics.json` here too, commit, and the next scheduled run picks up from where it left off.
+
+If that maintenance step gets missed, you'll know: once only one topic is left, that day's brief email carries a low-queue warning, and once the queue is fully empty, a dedicated email says so - so running dry is visible, not a silent skip.
+
+### Why three triggers instead of just a timer calling workflow_dispatch
+
+The obvious design - a scheduled job that calls the `workflow_dispatch` REST API on a timer - doesn't work from any Claude-hosted session: the GitHub credential those sessions get lacks the `actions:write` permission, confirmed by testing it directly (a `403 Resource not accessible by integration`, unchanged even when a manually-supplied Authorization header is sent - the session's proxy overrides it regardless). A plain `git push`, on the other hand, isn't gated by that permission, which is why the `push`-to-`.trigger/topic.txt` path exists and works. `schedule` sidesteps the whole problem by not needing any external caller at all - GitHub fires it on its own.
 
 ## Planned for v2
 

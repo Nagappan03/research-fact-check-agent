@@ -1,1 +1,1 @@
-(placeholder - the scheduled task overwrites this with the next pipeline topic before pushing)
+Temperature & sampling: controlling how creative a response is

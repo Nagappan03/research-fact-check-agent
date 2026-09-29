@@ -2,5 +2,10 @@
   "Temperature & sampling: controlling how \"creative\" a response is",
   "What is MCP (Model Context Protocol) and why it matters for agents",
   "Why AI replies stream word-by-word",
-  "Evals: how do you know your AI feature actually works?"
+  "Evals: how do you know your AI feature actually works?",
+  "Prompt injection & why AI agents shouldn't trust their own tools",
+  "Memory in AI agents: how chatbots actually \"remember\" (and why most don't)",
+  "Prompt caching: cutting AI costs without losing context",
+  "Structured output: making an LLM return JSON you can actually trust",
+  "Observability for AI apps: what to log when your product is a black box"
 ]

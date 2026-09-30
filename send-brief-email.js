@@ -64,7 +64,10 @@ async function main() {
   // in topics.json after this one via $GITHUB_OUTPUT -> steps.topic.outputs
   // -> this env var. Not set on a workflow_dispatch/push run, and that's
   // fine - there's nothing meaningful to warn about there.
-  const remaining = Number(process.env.QUEUE_REMAINING);
+  // An unset/blank env var must count as "no queue info", not 0: Number("") is 0,
+  // which made manual/push runs claim "only 0 topics left".
+  const rawRemaining = (process.env.QUEUE_REMAINING ?? "").trim();
+  const remaining = rawRemaining === "" ? NaN : Number(rawRemaining);
   const queueWarning = Number.isFinite(remaining) && remaining <= 1
     ? `\n\n---\nHeads up: only ${remaining} topic${remaining === 1 ? "" : "s"} left in topics.json after this one. Add the next batch soon, or a future scheduled run will have nothing to research.`
     : "";

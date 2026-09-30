@@ -3,3 +3,4 @@ date,topic,inputTokens,outputTokens,searches,cost
 2026-09-26,"Temperature & sampling: controlling how creative a response is",95568,4860,3,0.269736
 2026-09-28,"Why AI replies stream word-by-word",118277,5321,3,0.319764
 2026-09-29,"Evals: how do you know your AI feature actually works?",60990,4030,3,0.192280
+2026-09-30,"Temperature & sampling: controlling how creative a response is",47832,2468,2,0.140344

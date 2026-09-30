@@ -24,10 +24,15 @@ dotenv.config({ quiet: true }); // loads ANTHROPIC_API_KEY from .env into proces
 // Config
 // ---------------------------------------------------------------------------
 
-const MODEL = "claude-sonnet-5";
+// Switched from claude-sonnet-5 on 2026-09-30: Sonnet 5.5 benchmarks (GDPval-AA,
+// agentic tool-use efficiency) suggest better research/synthesis quality at the
+// same per-token price. Same $/MTok as Sonnet 5, so INPUT/OUTPUT prices below
+// are unchanged - only actual token/search counts per run should move.
+const MODEL = "claude-sonnet-5-5";
 const MAX_TOKENS = 16000;
 
-// Pricing in USD for Claude Sonnet 5. Update these if Anthropic's rates change.
+// Pricing in USD - unchanged between Claude Sonnet 5 and Sonnet 5.5. Update
+// these if Anthropic's rates change.
 const INPUT_PRICE_PER_MTOK = 2; // per million input tokens
 const OUTPUT_PRICE_PER_MTOK = 10; // per million output tokens
 const WEB_SEARCH_PRICE_PER_1000 = 10; // per 1,000 web searches

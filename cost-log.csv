@@ -6,3 +6,4 @@ date,topic,inputTokens,outputTokens,searches,cost
 2026-09-30,"Temperature & sampling: controlling how creative a response is",47832,2468,2,0.140344
 2026-09-30,"Prompt injection & why AI agents shouldn't trust their own tools",60783,2540,3,0.176966
 2026-10-01,"Memory in AI agents: how chatbots actually remember (and why most don't)",45305,2375,2,0.134360
+2026-10-06,"Prompt caching: cutting AI costs without losing context",126981,3205,3,0.316012

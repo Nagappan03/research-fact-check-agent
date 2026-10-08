@@ -8,3 +8,4 @@ date,topic,inputTokens,outputTokens,searches,cost
 2026-10-01,"Memory in AI agents: how chatbots actually remember (and why most don't)",45305,2375,2,0.134360
 2026-10-06,"Prompt caching: cutting AI costs without losing context",126981,3205,3,0.316012
 2026-10-07,"Structured output: making an LLM return JSON you can actually trust",78787,3225,2,0.209824
+2026-10-08,"Observability for AI apps: what to log when your product is a black box",48577,2425,1,0.131404

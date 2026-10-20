@@ -7,5 +7,13 @@
   "Memory in AI agents: how chatbots actually \"remember\" (and why most don't)",
   "Prompt caching: cutting AI costs without losing context",
   "Structured output: making an LLM return JSON you can actually trust",
-  "Observability for AI apps: what to log when your product is a black box"
+  "Observability for AI apps: what to log when your product is a black box",
+  "Rate limits, retries and fallbacks: keeping your AI feature up when the provider isn't",
+  "Guardrails: validating what goes into and comes out of an LLM",
+  "Model routing: sending easy requests to small models and hard ones to big models",
+  "Chunking: why how you split documents decides your RAG quality",
+  "Hybrid search and reranking: fixing retrieval after vector search falls short",
+  "LLM-as-a-judge: using one model to grade another (and where it fools you)",
+  "Tool design for agents: writing functions a model can actually use well",
+  "Agent loops gone wrong: step limits, budgets and human approval gates"
 ]

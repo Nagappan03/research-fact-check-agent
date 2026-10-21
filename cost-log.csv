@@ -11,3 +11,4 @@ date,topic,inputTokens,outputTokens,searches,cost
 2026-10-08,"Observability for AI apps: what to log when your product is a black box",48577,2425,1,0.131404
 2026-10-20,"Rate limits, retries and fallbacks: keeping your AI feature up when the provider isn't",86215,3487,3,0.237300
 2026-10-20,"Guardrails: validating what goes into and comes out of an LLM",53029,2204,2,0.148098
+2026-10-21,"Model routing: sending easy requests to small models and hard ones to big models",67421,2626,2,0.181102

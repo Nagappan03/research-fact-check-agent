@@ -14,3 +14,4 @@ date,topic,inputTokens,outputTokens,searches,cost
 2026-10-21,"Model routing: sending easy requests to small models and hard ones to big models",67421,2626,2,0.181102
 2026-10-22,"Chunking: why how you split documents decides your RAG quality",69622,2883,3,0.198074
 2026-10-23,"Hybrid search and reranking: fixing retrieval after vector search falls short",110694,3505,3,0.286438
+2026-10-26,"LLM-as-a-judge: using one model to grade another (and where it fools you)",46714,2677,2,0.140198

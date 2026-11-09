@@ -15,5 +15,9 @@
   "Hybrid search and reranking: fixing retrieval after vector search falls short",
   "LLM-as-a-judge: using one model to grade another (and where it fools you)",
   "Tool design for agents: writing functions a model can actually use well",
-  "Agent loops gone wrong: step limits, budgets and human approval gates"
+  "Agent loops gone wrong: step limits, budgets and human approval gates",
+  "Semantic caching: skipping the model call when you've already answered the question",
+  "Prompt versioning and regression testing: treating prompts like code",
+  "PII and data privacy: what you should never send to an LLM API",
+  "Feedback loops: turning thumbs up and down into better evals"
 ]

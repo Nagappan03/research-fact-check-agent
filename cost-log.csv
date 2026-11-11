@@ -19,3 +19,4 @@ date,topic,inputTokens,outputTokens,searches,cost
 2026-10-28,"Agent loops gone wrong: step limits, budgets and human approval gates",47389,2856,2,0.143338
 2026-11-09,"Semantic caching: skipping the model call when you've already answered the question",61593,2524,2,0.168426
 2026-11-10,"Prompt versioning and regression testing: treating prompts like code",33181,1780,3,0.114162
+2026-11-11,"PII and data privacy: what you should never send to an LLM API",46175,2309,2,0.135440
